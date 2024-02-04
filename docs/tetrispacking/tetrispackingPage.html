@@ -1,0 +1,390 @@
+<html>
+<head>
+    <style>
+        .occupiedBy-1{
+            background-color: black;
+        }
+        .occupiedBy0{
+            background-color: transparent;
+        }
+        .occupiedBy1{
+            background-color: red;
+        }
+        .occupiedBy2{
+            background-color: blue;
+        }
+        table {
+            width:100px;
+            height: 100px;
+        }
+        .row {
+        display: flex;
+        height:90%;
+        }
+        .column {
+        flex: 50%;
+        height:100%;
+        }
+        td { border: 1px solid #000000; }
+        .piece .occupiedBy0 {
+            border: 1px solid transparent;
+        }
+        #Grid {
+            width:167px;
+            height:167px;
+        }
+        .overlay {
+            z-index: 150;
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            background-color: beige;
+            width:100%;
+            height: 100%;
+        }
+        td.solid{
+            background-color: black;
+        }
+        #piecesCustomizer{
+            display:flex;
+            overflow-x: scroll;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <div id="gapCount"><text>Gaps: 10</text></div>
+    <div class="row">
+        <div class="column" id="Main">
+            <table id="Grid">
+                
+            </table>
+        </div>
+        <div class="column" id="Dock">
+
+        </div>
+    </div>
+    <div class="tools">
+        <button id="spin">spin</button>
+        <button id="hflip">hflip</button>
+        <button id="vflip">vflip</button>
+        <button id="customize">customize</button>
+    </div>
+    <div class="overlay" style="display:none;"><form>
+        <label for="rotationOn">Allow Rotation</label><input type="checkbox" id="rotationOn" checked="true"></br>
+        <label for="allowflip">Allow Flip</label><input type="checkbox" id="allowflip" checked="true"></br>
+        <label>Grid: </label><input type="text" size="3" id="GridWidth"><label>*</label><input type="text" size="3" id="GridHeight">
+        <table class="customizingGrid"></table>
+        <label>Current Tetris:</label><input type="text" size="3" id="PieceWidth"><label>*</label><input type="text" size="3" id="PieceHeight">
+        <button id="AddPiece" type="button">Add new</button></br>
+        <div id="piecesCustomizer"></div>
+        <button id="CloseCustomize" type="button">OK</button>
+    </form></div>
+    <script src="script.js"></script>
+    <script>
+        var grid = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]];
+        var pieces = [[],[[1,0,1],[0,1,0],[0,0,0]],[[0,1,0],[1,1,0],[0,0,0]]];
+        var historyLog = {};
+        var tempMovement = null;
+        function createPieces() {
+            $("#Dock").empty();
+            var htmlToAdd = "";
+            for(var k=0; k < pieces.length; k++){
+                if (pieces[k].length == 0){
+                    continue;
+                }
+                htmlToAdd += '<table class="piece" id="'+k+'"><tbody>';
+                for(var i=0; i < pieces[k].length; i++){
+                    htmlToAdd += "<tr>"
+                    for(var j=0; j < pieces[k][i].length; j++){
+                        var occupied = 0;
+                        if (pieces[k][i][j] == 1){
+                            occupied = k;
+                        }
+                        htmlToAdd += '<td class="occupiedBy'+occupied+'" draggable="true" ondragstart="drag(event);" pos="['+i+','+j+']"></td>';
+                    }
+                    htmlToAdd += "</tr>"
+                }
+                htmlToAdd += '</tbody></table>';
+            }
+            $("#Dock")[0].insertAdjacentHTML("afterbegin",htmlToAdd);
+        }
+        function refreshGrid() {
+            $("#Grid").empty();
+            var htmlToAdd = "<tbody>";
+            for (var i=0; i < grid.length; i++){
+                htmlToAdd += "<tr>";
+                for (var j=0; j < grid[i].length; j++){
+                    htmlToAdd += '<td class="occupiedBy'+grid[i][j]+'" ondrop="drop(event)" ondragover="allowDrop(event)" ondragstart="reDrag(event);" ondragend="reset(event);" pos="['+i+','+j+']">';
+                    htmlToAdd += '</td>'
+                }
+                htmlToAdd += "</tr>";
+            }
+            htmlToAdd += "</tbody>";
+            $("#Grid")[0].insertAdjacentHTML("afterbegin",htmlToAdd);
+            refreshCountGap();
+        }
+        function refreshCountGap() {
+            var gapCount = grid.flat().filter(a=>a == 0).length;
+            $("#gapCount text").text("Gaps :"+gapCount);
+        }
+        
+        function softRefreshGrid() {
+            for(var i=0; i < grid.length; i++){
+                for (var j=0; j < grid[i].length; j++){
+                    var currentCell = $("#Grid td[pos='["+i+","+j+"]']");
+                    var allClass = currentCell.get(0).className.split(/\s+/);
+                    for (k=0; k < allClass.length; k++){
+                        if (allClass[k].split("occupiedBy").length > 1){
+                            currentCell.removeClass(allClass[k]);
+                        }
+                    }
+                    currentCell.addClass("occupiedBy"+grid[i][j])
+                }
+            }
+        }
+        function removePiece(removeAtpos,currentPieceId){
+            //get all other cell related to the piece
+            var allRelated = arrayCopy(historyLog[JSON.stringify(removeAtpos)]);
+            var tempGrid = arrayCopy(grid);
+            for (var i=0; i < allRelated.length; i++){
+                var currentX = allRelated[i][0];
+                var currentY = allRelated[i][1];
+                tempGrid[currentX][currentY] = 0;
+                historyLog[JSON.stringify(allRelated[i])] = [];
+            }
+            tempMovement = [allRelated,currentPieceId];
+            return tempGrid;
+        }
+        function applyOnAllPiece(mode){
+            for(var i=0; i < pieces.length; i++){
+                if (mode == "spin"){
+                    pieces[i] = arrayRotate(pieces[i]);
+                }
+                if (mode == "vflip"){
+                    pieces[i] = arrayVFlip(pieces[i]);
+                }
+                if (mode == "hflip"){
+                    pieces[i] = arrayHFlip(pieces[i]);
+                }
+            }
+            createPieces();
+        }
+        function dropPiece(pieceId, pos){
+            var testGrid = arrayCopy(grid);
+            var actualArrayToAdd = pieces[parseInt(pieceId)].map(a => a.map(b=>b * parseInt(pieceId)));
+            testGrid = arrayAdd(testGrid, actualArrayToAdd, pos);
+            //check collision
+            var changedCells = [];
+            if (testGrid.length != grid.length){
+                    return grid;
+                }
+            for (var i=0; i < testGrid.length; i++){
+                for (var j=0; j < testGrid.length; j++){
+                    if (testGrid[i][j] > 0 && grid[i][j] != 0 && testGrid[i][j] > grid[i][j]){
+                        return grid;
+                    }
+                    if (testGrid[i][j] != grid[i][j]){
+                        changedCells.push([i,j]);
+                    }
+                }
+                if (testGrid[i].length != grid[i].length){
+                    return grid;
+                }
+            }
+            for (var i=0; i < changedCells.length; i++){
+                historyLog[JSON.stringify(changedCells[i])] = arrayCopy(changedCells);
+            }
+            return testGrid;
+        }
+
+        //Section for customization
+        function SetupCustomizeGrid() {
+            $(".customizingGrid td").on("click", function() {
+                if ($(this).is(".solid")){
+                    $(this).removeClass("solid");
+                }else {
+                    $(this).addClass("solid");
+                }
+            });
+        }
+        function SetupCustomizePiece() {
+            $(".customizingPieces td").on("click", function() {
+                if ($(this).is(".solid")){
+                    $(this).removeClass("solid");
+                }else {
+                    $(this).addClass("solid");
+                }
+            });
+        }
+        function parseCustomizePieces(){
+            pieces = [];
+            var allCustomizingGrid = $(".customizingPieces");
+            for(var i=0; i < allCustomizingGrid.length; i++){
+                var piecearray = [];
+                var allrow = $(allCustomizingGrid[i]).find("tr");
+                for(var j=0; j < allrow.length; j++){
+                    var currentrowarray = [];
+                    var allcell = $(allrow[j]).find("td");
+                    for (var k=0; k < allcell.length; k++){
+                        if ($(allcell[k]).is(".solid")){
+                            currentrowarray.push(1);
+                        } else {
+                            currentrowarray.push(0);
+                        }
+                    }
+                    piecearray.push(currentrowarray);
+                }
+                pieces.push(piecearray);
+            }
+            console.log(pieces);
+        }
+        function parseCustomizeGrid(){
+            grid = [];
+            var customizingGrid = $(".customizingGrid").get(0);
+            var allrow = $(customizingGrid).find("tr");
+            for(var j=0; j < allrow.length; j++){
+                var currentrowarray = [];
+                var allcell = $(allrow[j]).find("td");
+                for (var k=0; k < allcell.length; k++){
+                    if ($(allcell[k]).is(".solid")){
+                        currentrowarray.push(-1);
+                    } else {
+                        currentrowarray.push(0);
+                    }
+                }
+                grid.push(currentrowarray);
+            }
+            console.log(grid);
+        }
+        function DisplayCurrentGrid() {
+            $(".customizingGrid").empty();
+            var appendHtml = "<tbody>";
+            for (var i=0; i < grid.length; i++){
+                appendHtml += "<tr>";
+                for (var j=0; j < grid[i].length; j++){
+                    if (grid[i][j] == -1){
+                        appendHtml += "<td class='solid'></td>";
+                    } else {
+                        appendHtml += "<td></td>";
+                    }
+                }
+                appendHtml += "</tr>";
+            }
+            appendHtml += "</tbody>";
+            $(".customizingGrid")[0].insertAdjacentHTML("afterbegin",appendHtml);
+        }
+        function DisplayCurrentPieces() {
+            $("#piecesCustomizer").empty();
+            var appendHtml = "";
+            for (var k=0; k < pieces.length; k++){
+                if (k==0){
+                    appendHtml += "<table class='customizingPieces' style='display:none;'><tbody>";
+                } else {
+                    appendHtml += "<table class='customizingPieces'><tbody>";
+                }
+                for (var i=0; i < pieces[k].length; i++){
+                    appendHtml += "<tr>";
+                    for (var j=0; j < pieces[k][i].length; j++){
+                        if (pieces[k][i][j] == 1){
+                            appendHtml +="<td class='solid'></td>";
+                        } else {
+                            appendHtml +="<td></td>";
+                        }
+                    }
+                    appendHtml += "</tr>";
+                }
+                appendHtml += "</tbody></table>";
+            }
+            $("#piecesCustomizer")[0].insertAdjacentHTML("afterbegin",appendHtml);
+        }
+        function SetUpAddPieceButton(){
+            $("#AddPiece").off("click");
+            $("#AddPiece").on("click", function () {
+                var width = $("#PieceWidth").val();
+                var height = $("#PieceHeight").val();
+                if (!width){
+                    width = 3;
+                } else {
+                    width = parseInt(width);
+                }
+                if (!height){
+                    height = 3;
+                } else {
+                    height = parseInt(height);
+                }
+                pieces.push(InitializeGrid(width, height));
+                DisplayCurrentPieces();
+                SetupCustomizePiece();
+            });
+        }
+        function InitializeGrid(width, height){
+            tempGrid = [];
+            for (var i=0; i< height; i++){
+                b = new Array(width).fill(0);
+                tempGrid.push(b);
+            }
+            return tempGrid;
+        }
+        function DisplayCustomize() {
+            DisplayCurrentGrid();
+            DisplayCurrentPieces();
+            SetupCustomizeGrid();
+            SetupCustomizePiece();
+            SetUpAddPieceButton();
+            $("#GridWidth").val(grid[0].length);
+            $("#GridHeight").val(grid.length);
+            $("#GridWidth").on("change", function() {
+                var originalGrid = arrayCopy(grid);
+                grid = InitializeGrid(parseInt($(this).val()), originalGrid.length);
+                DisplayCurrentGrid();
+                SetupCustomizeGrid();
+            });
+            $("#GridHeight").on("change", function() {
+                var originalGrid = arrayCopy(grid);
+                grid = InitializeGrid(originalGrid[0].length, parseInt($(this).val()));
+                DisplayCurrentGrid();
+                SetupCustomizeGrid();
+            });
+        }
+        //Section for customization
+        $(document).ready(function() {
+            refreshGrid();
+            createPieces();
+            $("#spin").on("click", function(){
+                applyOnAllPiece("spin");
+            })
+            $("#vflip").on("click", function (){
+                applyOnAllPiece("vflip");
+            });
+            $("#hflip").on("click", function (){
+                applyOnAllPiece("hflip");
+            });
+            DisplayCustomize();
+            $("#CloseCustomize").on("click", function () {
+                $(".overlay").css('display','none');
+                parseCustomizePieces();
+                parseCustomizeGrid();
+                refreshGrid();
+                createPieces();
+                if ($("#rotationOn").is(':checked')){
+                    $("#spin").attr('disabled',false);
+                } else {
+                    $("#spin").attr('disabled',true);
+                }
+                if ($("#allowflip").is(':checked')){
+                    $("#hflip").attr('disabled',false);
+                    $("#vflip").attr('disabled',false);
+                } else {
+                    $("#vflip").attr('disabled',true);
+                    $("#hflip").attr('disabled',true);
+                }
+            });
+            $("#customize").on("click", function () {
+                $(".overlay").css('display','block');
+                DisplayCustomize();
+            });
+        });
+    </script>
+</body>
+</html>

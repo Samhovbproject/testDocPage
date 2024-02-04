@@ -1,0 +1,779 @@
+---
+layout: default
+title: Demonstration
+parent: Synthesis Problem in Atelier Sophie: The Alchemist of the Mysterious books DX
+nav_order: 1
+---
+<html>
+    <head>
+        <style>
+            .isHoletrue{
+                background-color: black !important;
+                color: black !important;
+            }
+            .backgroundColorG{
+                background-color: green;
+                color: orange
+            }
+            .backgroundColorR{
+                background-color: red;
+                color: darkblue;
+            }
+            .backgroundColorB{
+                background-color: blue;
+                color: gold;
+            }
+            .backgroundColorY{
+                background-color: yellow;
+                color: rebeccapurple;
+            }
+            .backgroundColorW{
+                background-color: white;
+            }
+            table#BoardGrid{
+                width:167px;
+                height:167px;
+            }
+            table.material {
+                width:83px;
+                height:83px;
+            }
+            .piece.backgroundColortransparent {
+                border: 1px solid transparent;
+            }
+            .piece.backgroundColorSolid {
+                border: 1px solid black;
+            }
+            .row {
+            display: flex;
+            }
+            .column {
+            flex: 50%;
+            height:100%;
+            }
+            td { border: 1px solid #000000; 
+                text-align: center;
+                width:attr(size);
+                height: attr(size);}
+            .overlay {
+                z-index: 150;
+                position: absolute;
+                left: 0px;
+                top: 0px;
+                background-color: beige;
+                width:100%;
+                /* height: 100%; */
+            }
+            .overlay-blackscreen {
+                z-index: 150;
+                position: absolute;
+                left: 0px;
+                top: 0px;
+                background-color: black;
+                width:100%;
+                height: 100%;
+                opacity: 0.5;
+                pointer-events: none;
+            }
+            td.solid{
+                background-color: black;
+            }
+            #piecesCustomizer{
+                display:flex;
+                overflow-x: scroll;
+            }
+            meter::before {
+                content : attr(value);
+                top: 2em;
+                left: 50%;
+                position:relative;
+            }
+            meter::after {
+                content : attr(max);
+                top: -1em;
+                left: 100%;
+                position:relative;
+            }
+            #RuleExplanation {
+                width: 30%;
+                float: left;
+            }
+            #Main {
+                width:70%;
+                float: left;
+            }
+            .oneRow{
+                width:100%;
+                overflow: auto;
+            }
+            fieldset.pointGroup{
+                height: 15%;
+            }
+            meter.pointGroup{
+                margin-right: 15px;
+            }
+            meter::-webkit-meter-bar {
+                background: none; /* Required to get rid of the default background property */
+                background-color: whiteSmoke;
+                box-shadow: 0 5px 5px -5px #333 inset;
+            }
+            #MaterialsDock{
+                width:40%;
+                float: left;
+            }
+            #MainBoard{
+                width:60%;
+                float: left;
+            }
+            #ColorPercentage{
+                height:10%;
+            }
+            .horizontalPlacement{
+                display:flex;
+            }
+            div.halfWidth {
+                width: 50%;
+            }
+        </style>
+    </head>
+<body>
+    <div class="overlay" style="display:none;" id="CustomizeScreen"><form>
+        <div class="oneRow row">
+            <div id="CustomizerMaterialsDock" class="halfWidth"></div>
+            <div id="CustomizerLeftDock" class="halfWidth">
+                <div id="CustomizerBoardDock"></div>
+                <div id="CustomizeUtilities">
+                    <fieldset>
+                        <legend>Customize Utilities</legend>
+                    <textarea id="jsonToActOn" rows="5" style="width:100%"></textarea>
+                    </br><button id="ExportJson" type="button" onclick="exportJson();">Export Json</button>
+                    <button id="ImportJson" type="button" onclick="importJson();">Import Json</button>
+                    </fieldset>
+                </div>
+                <div id="Tips&Hints">
+                    <fieldset>
+                        <legend>Tips and Hints</legend>
+                        <ul>
+                            <li>If you only want a specific constraint to be satisfied, remove any constraint in the same point group that need higher points to achieve and add multiple copy of the target constraint</li>
+                            <li>In general, choosing materials with the same colour will be more probable to satisfy all constraints</li>
+                            <li>In general, not overlapping materials will be more probable to satisfy more constraints. You can use <a href="">solver</a> to try which board can take all your materials. </li>
+                        </ul>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+        <button id="CloseCustomize" type="button">OK</button>
+    </form></div>
+    <div class="oneRow">
+    <div id="Main"> 
+        <div class="oneRow">
+            <div id="MaterialsDock">
+                Materials
+            </div>
+            <div id="MainBoard">
+                <div id="ColorPercentage" class="horizontalPlacement">
+                    <div id="redPercentage">&nbspRed : <span id="ColorPercentageR" style="color:red;">0</span>%&nbsp</div>
+                    <div id="bluePercentage">&nbspBlue : <span id="ColorPercentageB" style="color:blue;"">0</span>%&nbsp</div>
+                    <div id="greenPercentage">&nbspGreen : <span id="ColorPercentageG" style="color:green;">0</span>%&nbsp</div>
+                    <div id="yellowPercentage">&nbspYellow : <span id="ColorPercentageY" style="color:rgb(166, 166, 0);">0</span>%&nbsp</div>
+                    <div id="whitePercentage">&nbspWhite : <span id="ColorPercentageW" >0</span>%&nbsp</div>
+                </div>
+                <div id="Board">
+                    Board
+                </div>
+                <div id="Tools">
+                    <button type="button" id="Undo">Undo</button>
+                    <button type="button" id="Customize">Customize</button>
+                    <button type="button" id="Solve">Solve</button>
+                </div>
+                <div id="SolverResultsBox">
+                    <textarea rows="10" cols="20"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="RuleExplanation">
+        <p id="Major Rule">
+            Place the materials on the board and try to satisfy as much constraints as possible.
+            </br>For the color percentage at the top, the highest percentage will be multiplied to their respective color at the end of placing materials.
+        </p>
+        <p id="PointRule">
+
+        </p>
+        <p id="Constraints">
+        </p>
+    </div>
+    <div class="overlay-blackscreen" style="display:none;"></div>
+</div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="ejs.min.js"></script>
+    <script src="atelierGame.js"></script>
+    <script>
+        var solverUrl = "https://solverserver-iihs3ubrla-lz.a.run.app";
+        var currentGame;
+        var customizerGame;
+        $(function() {
+            InitializeGame();
+            InitializeTools();
+            InitializeSolverButton();
+        });
+        //#region Solver communication
+        function InitializeSolverButton(){
+            $("#Solve").on("click", function() {
+                // Display loading
+                $("#SolverResultsBox textarea").val("Loading");
+                // Send json to url
+                $.ajax({
+                    url: solverUrl,
+                    type: "POST",
+                    contentType: "application/json",
+                    data:'{ "type":"atelier", "parameters":'+currentGame.jsonString+'}',
+                    success: function(result){
+                        $("#SolverResultsBox textarea").val(generateResultDisplay(parseResult(result)));
+                    },
+                });
+            });
+        }
+        
+        class Step{
+            constructor(stepIndex, materialIndex, coordinate){
+                this.stepIndex = stepIndex;
+                this.materialIndex = materialIndex;
+                this.coordinate = coordinate;
+            }
+        }
+
+        function parseResult(res){
+            debugger;
+            try {
+                var result = JSON.parse(res);
+                var solvedSteps = [];
+                const regexFormatString = /M([0-9]+)\(([0-9]+),([0-9]+)\)([0-9]+)/;
+                for (var i=0; i < result.length; i++){
+                    var match = result[i].match(regexFormatString);
+                    solvedSteps.push(new Step(match[1], match[4], new Coordinate(parseInt(match[3]), parseInt(match[2]))));
+                }
+                solvedSteps.sort(function(a,b){
+                    return parseInt(a.stepIndex) - parseInt(b.stepIndex);
+                })
+                return solvedSteps;
+            } catch {
+                // if something doesn't match the format just display the result without parsing
+                return result;
+            }
+        }
+
+        function generateResultDisplay(parsedResult){
+            try {
+                var displayString = "Note: The coordinates are 0-index from left to right, top to bottom.\n";
+                for (var i=0; i < parsedResult.length; i++){
+                    displayString += parsedResult[i].stepIndex + ". Place Material "+parsedResult[i].materialIndex;
+                    displayString += " at "+parsedResult[i].coordinate.toString() +"\n";
+                }
+                return displayString;
+            } catch {
+                // if something doesn't match the format just display the result without parsing
+                return parsedResult;
+            }
+        }
+        //#endregion
+        //#region Customize
+        function InitializeTools(){
+            $("#Undo").on("click", function() {
+                currentGame.undo();
+                RefreshBoard();
+            });
+            $("#Customize").on("click", function() {
+                DisplayCustomize();
+            });
+            $("#CloseCustomize").on("click", function () {
+                CloseCustomize();
+            });
+            $(document).on("change",".materialColorSelect", function() {
+                var index = $(this).attr("id");
+                // The Grid is on 1-index, while the variable is on 0-index
+                index = parseInt(index.split("MaterialGrid")[1].split("_color")[0])-1;
+                var selectedColor = $(this).find(":selected").val();
+                CustomizerChangeMaterialColor(index, selectedColor);
+            });
+            $(document).on("change",".basePointInput", function() {
+                var index = $(this).attr("id");
+                // The Grid is on 1-index, while the variable is on 0-index
+                index = parseInt(index.split("CustomizerMaterialGrid")[1].split("_basePoint")[0])-1;
+                var basePoint = parseInt($(this).val());
+                CustomizerChangeMaterialBasePoint(index, basePoint);
+            });
+            $(document).on("change",".pointGroupConstraintInput", function() {
+                var id = $(this).attr("id");
+                // The Grid is on 1-index, while the variable is on 0-index
+                var index = parseInt(id.split("CustomizerPointGroupConstraint")[1].split(",")[0])-1;
+                var pointGroup = id.split("CustomizerPointGroupConstraint")[1].split(",")[1];
+                var pointGroupConstraint = parseInt($(this).val());
+                CustomizerChangePointGroupConstraint(pointGroup, index, pointGroupConstraint);
+            });
+            $(document).on("change", "#CustomizerPointRuleSelect", function() {
+                CustomizerChangePointRule($(this).find(":selected").val());
+            })
+            $(document).on("change", ".boardGradeInput", function() {
+                var x= parseInt($(this).attr("x"));
+                var y= parseInt($(this).attr("y"));
+                var grade =parseInt($(this).val());
+                CustomizerChangeBoardGrade(x,y,grade);
+            })
+            $(document).on("change", ".boardColorSelect", function() {
+                var id = $(this).attr("id");
+                var x = id.split("CustomizerBoardColor_")[1].split("_")[0];
+                var y = id.split("CustomizerBoardColor_")[1].split("_")[1];
+                var selectedColor = $(this).find(":selected").val();
+                CustomizerChangeBoardColor(x,y,selectedColor);
+            })
+            $(document).on("click", ".boardIsHoleInput", function() {
+                var isHole = $(this).is(":checked");
+                var id = $(this).attr("id");
+                var x = id.split("CustomizerBoardIsHole_")[1].split("_")[0];
+                var y = id.split("CustomizerBoardIsHole_")[1].split("_")[1];
+                CustomizerChangeBoardIsHole(x,y,isHole);
+            })
+            $(document).on("change", "#CustomizerGridSize", function() {
+                var targetSize = parseInt($(this).val());
+                CustomizerChangeBoardGridSize(targetSize);
+            })
+        };
+        function DisplayCustomize(){
+            customizerGame = new Game(currentGame.initialBoardJsonString, currentGame.materialsJsonString, currentGame.constraints, currentGame.applyWhichPointRule);
+            RefreshMaterialCustomizer();
+            RefreshBoardCustomizer();
+            $("#CustomizeScreen").show();
+        }
+
+        function CloseCustomize(){
+            debugger;
+            $("#CustomizeScreen").hide();
+            currentGame = new Game(customizerGame.boardJsonString, customizerGame.materialsJsonString, customizerGame.constraints, customizerGame.applyWhichPointRule);
+            RefreshBoard();
+            DisplayConstraints();
+            DisplayPointRule();
+        }
+        
+        //#region material customizer
+        function DisplayMaterialCustomizer() {
+            const materialsTemplate = '<% var materials = JSON.parse(materialsJsonString);%>' +
+                                        '<% for (const [key, value] of Object.entries(constraints)) {%> ' +
+                                            '</br><button onclick="CustomizerRemovePointGroup('+"'"+'<%=key%>'+"'"+')" type="button">x</button>' + 
+                                            '<fieldset><legend><%= key %></legend>' +
+                                                '<% for (var i=0; i < materials.length; i++) {%>' +
+                                                '<% if (materials[i]["PointGroup"] === key) {%>' +
+                                                    '<div class="row" id="CustomizerMaterialGrid<%= i+1 %>"><table class="material"><tbody>'+
+                                                        '<% for (var j=0; j < materials[i]["Shape"].length; j++) {%>'+
+                                                            '<tr>' +
+                                                            '<% for (var k=0; k < materials[i]["Shape"][j].length; k++) {%>' +
+                                                                '<td class="piece backgroundColor<%= materials[i]["Shape"][j][k] === 1 ? materials[i]["Color"] : "Solid" %>" materialIndex="<%= i+1 %>" pos="[<%= j %>,<%= k %>]" onclick="FlipMaterialShape(<%=i%>,<%=j%>, <%=k%>)"> </td>' +
+                                                            '<% } %>' +
+                                                            '</tr>'+
+                                                        '<% } %>' +
+                                                        '</tbody></table><input type="number" id="CustomizerMaterialGrid<%= i+1 %>_basePoint" min="0" value="<%=materials[i]["BasePoint"]%>" class="basePointInput"/>'+
+                                                        DropDownListForColor("MaterialGrid<%= i+1 %>_color", 'materials[i]["Color"]', 'materialColorSelect') +
+                                                        '<button onclick="CustomizerRemoveMaterial(<%= i %>)" type="button">x</button></div>' + 
+                                                '<% } %>' + 
+                                                '<% } %>' + 
+                                                '<button onclick="CustomizerAddMaterial('+"'"+'<%=key%>'+"'"+')" type="button">+</button>' +
+                                            '</fieldset>' +  
+                                            '<% for (var c=0; c < value.length; c++) {%>' +
+                                                '<input type="number" id="CustomizerPointGroupConstraint<%= c+1 %>,<%=key%>" value="<%= value[c]%>" min="0" class="pointGroupConstraintInput"/>' +
+                                                '<button onclick="CustomizerRemovePointGroupConstraint('+"'"+'<%=key%>'+"'"+', <%= c+1 %>)" type="button">x</button>' + 
+                                            '<% } %>' + 
+                                            '<button onclick="CustomizerAddPointGroupConstraint('+"'"+'<%=key%>'+"'"+')" type="button">+</button>' + 
+                                        '<% } %>' +
+                                        '<br/><button onclick="CustomizerAddPointGroup()" type="button">+</button>' ;
+            var html = ejs.render(materialsTemplate, {materialsJsonString: customizerGame.materialsJsonString , constraints : customizerGame.getConstraints});
+            $("#CustomizerMaterialsDock").html(html);
+        }
+        function RefreshMaterialCustomizer() {
+            DisplayMaterialCustomizer();
+        }
+        //#endregion
+        //#region board customizer
+        function DisplayBoardCustomizer() {
+            const boardTemplate = '<% var board = JSON.parse(boardJsonString);%>' +
+                                    '<div class="tabDisplay">'+
+                                    '<button class="tab" onclick="DisplayBoardOnTab('+"'"+'GradeGrid'+"'"+')" type="button">Grade</button>'+
+                                    '<button class="tab" onclick="DisplayBoardOnTab('+"'"+'ColorGrid'+"'"+')" type="button">Color</button>'+
+                                    '<button class="tab" onclick="DisplayBoardOnTab('+"'"+'IsHoleGrid'+"'"+')" type="button">IsHole</button>'+
+                                    '</div>'+
+                                  '<table id="BoardCustomizerGradeGrid" style="display:block;" class="boardCustomizer">' +
+                                    '<% for (var i=0; i < board["GradeGrid"].length; i++) {%>' +
+                                        '<tr>'+
+                                        '<% for (var j=0; j < board["GradeGrid"][i].length; j++) {%>' +
+                                            '<td><input type="number" id="CustomizerBoardGradeGrid_<%=i%>_<%=j%>" x="<%=i%>" y="<%=j%>" min="0" value="<%=board["GradeGrid"][i][j]%>" max="3" class="boardGradeInput" /></td>'+
+                                        '<% }%>'+
+                                        '</tr>' +
+                                    '<% }%>'+
+                                    '</table>'+
+                                    '<table id="BoardCustomizerColorGrid" style="display:none;"  class="boardCustomizer">' +
+                                    '<% for (var i=0; i < board["ColorGrid"].length; i++) {%>' +
+                                        '<tr>'+
+                                        '<% for (var j=0; j < board["ColorGrid"][i].length; j++) {%>' +
+                                            '<td>'+DropDownListForColor("CustomizerBoardColor_<%=i%>_<%=j%>",'board["ColorGrid"][i][j]','boardColorSelect')+'</td>'+
+                                        '<% }%>'+
+                                        '</tr>' +
+                                    '<% }%>'+
+                                    '</table>'+
+                                    '<table id="BoardCustomizerIsHoleGrid" style="display:none;"  class="boardCustomizer">' +
+                                    '<% for (var i=0; i < board["isHoleGrid"].length; i++) {%>' +
+                                        '<tr>'+
+                                        '<% for (var j=0; j < board["isHoleGrid"][i].length; j++) {%>' +
+                                            '<td><input type="checkbox" id="CustomizerBoardIsHole_<%=i%>_<%=j%>" value="<%=i%>_<%=j%>" <%=board["isHoleGrid"][i][j] ? "checked" : "" %> class="boardIsHoleInput"></td>'+
+                                        '<% }%>'+
+                                        '</tr>' +
+                                    '<% }%>'+
+                                    '</table>'+
+                                    '<div id="GridDesign">Grid Size: <input type="number" min=1 max=9 id="CustomizerGridSize" value="<%=board["GradeGrid"].length%>"/></div>' +
+                                    '<fieldset><legend>Point Rule</legend>'+
+                                    DropDownListForPointRule("CustomizerPointRuleSelect", "pointRule")+
+                                    '</fieldset>';
+            var html = ejs.render(boardTemplate, {boardJsonString: customizerGame.boardJsonString, pointRule: customizerGame.applyWhichPointRule});
+            $("#CustomizerBoardDock").html(html);
+        }
+        function RefreshBoardCustomizer() {
+            DisplayBoardCustomizer();
+        }
+
+        function DisplayBoardOnTab(tab){
+            $(".boardCustomizer").hide();
+            $("#BoardCustomizer"+tab).show();
+        }
+        //#endregion
+        //#region customizer utility
+        function DropDownListForColor(idTemplateString, colorTemplateString, selectClass){
+            var currentAvailableColor = {"R":"Red", "B":"Blue", "G":"Green", "Y":"Yellow", "W":"White"};
+            var dropDownListTemplate = '<select id="'+idTemplateString+'" class="'+selectClass+' backgroundColor<%= '+colorTemplateString+'%>">';
+            for (const [key, value] of Object.entries(currentAvailableColor)){
+                dropDownListTemplate += '<option value="'+key+'" <%= '+ colorTemplateString+'=="'+key+'"?"selected":"" %> class="backgroundColor'+key+'">'+value+'';
+            }
+            dropDownListTemplate +=  '</select>';
+            return dropDownListTemplate;
+        }
+
+        function DropDownListForPointRule(idTemplateString, currentRuleTemplateString){
+            var currentAvailableRule = {"357bonus":"357bonus", "246":"246"};
+            var dropDownListTemplate = '<select id="'+idTemplateString+'">';
+            for (const [key, value] of Object.entries(currentAvailableRule)){
+                dropDownListTemplate += '<option value="'+key+'" <%= '+ currentRuleTemplateString+'=="'+key+'"?"selected":"" %> >'+value+'';
+            }
+            dropDownListTemplate +=  '</select>';
+            return dropDownListTemplate;
+        }
+        //#endregion
+        //#region Customizer buttons
+        //#region Customizer PointGroup
+        function CustomizerRemovePointGroup(pointGroup){
+            delete customizerGame.constraints[pointGroup];
+            RefreshMaterialCustomizer();
+        }
+        function CustomizerAddPointGroup(){
+            var newPointGroup = randomString(5);
+            customizerGame.constraints[newPointGroup] = [];
+            RefreshMaterialCustomizer();
+        }
+        function CustomizerRemovePointGroupConstraint(pointGroup, index){
+            customizerGame.constraints[pointGroup].splice(index,1);
+            RefreshMaterialCustomizer();
+        }
+        function CustomizerAddPointGroupConstraint(pointGroup){
+            customizerGame.constraints[pointGroup].push(0);
+            RefreshMaterialCustomizer();
+        }
+        function CustomizerChangePointGroupConstraint(pointGroup, index, pointGroupConstraint){
+            customizerGame.constraints[pointGroup][index] = pointGroupConstraint;
+        }
+        //#endregion
+        //#region Customizer Material
+        function CustomizerRemoveMaterial(index){
+            customizerGame.materials.splice(index,1);
+            RefreshMaterialCustomizer();
+        }
+        function CustomizerAddMaterial(pointGroup){
+            customizerGame.materials.push(new Material([[0,0,0],[0,0,0],[0,0,0]],"R",0,customizerGame.materials.length+1,pointGroup));
+            RefreshMaterialCustomizer();
+        }
+        function FlipMaterialShape(index, y,x){
+            customizerGame.flipSpecificMaterialShape(index,y,x);
+            RefreshMaterialCustomizer();
+        }
+
+        function CustomizerChangeMaterialColor(index, selectedColor){
+            customizerGame.materials[index].changeColor(selectedColor);
+            RefreshMaterialCustomizer();
+        }
+
+        function CustomizerChangeMaterialBasePoint(index, basePoint){
+            customizerGame.materials[index].changeBasePoint(basePoint);
+            RefreshMaterialCustomizer();
+        }
+        //#endregion
+        //#region Customizer Board
+        function CustomizerChangeBoardGrade(x,y,grade){
+            customizerGame.board.setGrade(x,y,grade);
+        }
+        function CustomizerChangeBoardColor(x,y,color){
+            customizerGame.board.setColor(x,y,color);
+            RefreshBoardCustomizer();
+            DisplayBoardOnTab("ColorGrid");
+        }
+        function CustomizerChangeBoardIsHole(x,y,isHole){
+            customizerGame.board.setIsHole(x,y,isHole);
+        }
+        function CustomizerChangeBoardGridSize(targetSize){
+            customizerGame.setBoardSize(targetSize);
+            RefreshBoardCustomizer();
+        }
+        //#endregion
+        //#region Customizer PointRule
+        function CustomizerChangePointRule(pointrule){
+            customizerGame.setPointRuleByApply(pointrule);
+        }
+        //#endregion
+        //#endregion
+        //#endregion
+        //#region Customize Utilities
+        function exportJson(){
+            $("#jsonToActOn").val(customizerGame.jsonString);
+        }
+        function importJson(){
+            var jsonString = $("#jsonToActOn").val();
+            if (jsonString){
+                try{
+                    var gameOfJSON = JSON.parse(jsonString);
+                    customizerGame = new Game(gameOfJSON["boardJson"], gameOfJSON["materialsJson"], gameOfJSON["constraints"], gameOfJSON["applyWhichPointRule"]);
+                    RefreshMaterialCustomizer();
+                    RefreshBoardCustomizer();
+                } catch(e){
+                    alert("Cannot parse JSON");
+                }
+            } else {
+                alert("Nothing to import");
+            }
+        }
+        //#endregion
+        //#region Main Game
+        function InitializeGame(){
+            var GradeGrid = [[0,0,0,2,0,0],[0,0,0,0,1,0],[0,0,1,0,0,0],[1,0,0,0,1,0],[0,2,0,1,0,0],[0,0,0,0,0,0]];
+            var ColorGrid = [["B","G","Y","Y","W","G"],["W","Y","Y","Y","Y","B"],["R","Y","R","R","Y","R"],["R","Y","R","R","Y","R"],["W","Y","Y","Y","Y","B"],["G","B","Y","Y","G","W"]];
+            var isHoleGrid = [[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false]];
+            var boardJson = JSON.stringify({"GradeGrid":GradeGrid, "ColorGrid":ColorGrid, "isHoleGrid":isHoleGrid});
+            var material1 = {"Shape":[[1,0,0],[1,1,0],[1,1,0]], "Color":"Y", "BasePoint":18, "PointGroup":"A"};
+            var material2 = {"Shape":[[1,0,0],[1,1,0],[1,1,0]], "Color":"Y", "BasePoint":18, "PointGroup":"A"};
+            var material3 = {"Shape":[[1,0,0],[1,1,0],[0,0,0]], "Color":"Y", "BasePoint":10, "PointGroup":"B"};
+            var material4 = {"Shape":[[1,0,0],[1,0,0],[1,0,0]], "Color":"Y", "BasePoint":10, "PointGroup":"C"};
+            var materialJson = JSON.stringify([material1, material2, material3, material4]);
+            var constraint = {"A":[0,50,100],"B":[0,30,50],"C":[0,30,55]};
+            currentGame = new Game(boardJson, materialJson, constraint, "357bonus");
+            DisplayPointRule();
+            DisplayConstraints();
+            DisplayBoard();
+            DisplayMaterial();
+        }
+
+        function DisplayPointRule() {
+            var pointRuleMessage = "";
+            switch(currentGame.pointRuleString) {
+                case "357bonus":
+                    pointRuleMessage = "Placing on Grade 1, 2, 3 cell will give you 3, 5, 7 points respectively. If the material match with the cell color, it will give the grade and 1.5* multiple bonus on top of the points. If you have 2 cell that match material's color, you get 1 more point."
+                    break;
+                case "246":
+                    pointRuleMessage = "Placing on Grade 1, 2, 3 cell will give you 2, 4, 6 points respectively. If the material match with the cell color, it will give the grade on top of the points. If you have 2 cell that match material's color, you get 1 more point."
+                    break;
+                default:
+                    pointRuleMessage = "Something undefined in logic, you might need to guess how the point works."
+                    break;
+            }
+            $("#PointRule").text(pointRuleMessage);
+        }
+        function DisplayConstraints() {
+            const constraintsTemplate = '<% for (const [key, value] of Object.entries(constraints)) { %> ' +
+                                        '<fieldset class="pointGroup"><legend><%= key+" : "+JSON.stringify(value) %></legend>' +
+                                            '<% for (var i=1; i < value.length; i++) { %> ' + 
+                                            '<meter class="pointGroup" min="<%= value[i-1] %>" max="<%= value[i] %>" value="0" id="pointGroup<%= key %><%= i %>"></meter>' + 
+                                            '<% } %>' +
+                                            '</fieldset>' + 
+                                        '<% } %>' ;
+            var html = ejs.render(constraintsTemplate, {constraints: currentGame.getConstraints});
+            $("#Constraints").html(html);
+        }
+        function RefreshBoard() {
+            DisplayMaterial();
+            DisplayBoard();
+            DisplayColorPercentage();
+            DisplayPointsInPointGroup();
+        }
+        //#endregion
+        //#region Display utilities
+        function DisplayBoard() {
+            const boardTemplate = '<% var board = JSON.parse(boardJsonString); var size = 100.0 / (board["GradeGrid"].length) %>' +
+                                    '<table id="BoardGrid"><tbody>'+
+                                    '<% for (var i=0; i < board["GradeGrid"].length; i++) {%>'+
+                                        '<tr>' +
+                                        '<% for (var j=0; j < board["GradeGrid"][i].length; j++) {%>' +
+                                            '<td size="<%= size.toFixed(2) %>%" class="backgroundColor<%= board["ColorGrid"][i][j] %>  isHole<%= board["isHoleGrid"][i][j].toString() %>" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="allowDrop(event)" pos="[<%= i %>,<%= j %>]"> <%= board["GradeGrid"][i][j] %></td>' +
+                                        '<% } %>' +
+                                        '</tr>'+
+                                    '<% } %>' +
+                                    '</tbody></table>';
+            var html = ejs.render(boardTemplate, {boardJsonString: currentGame.boardJsonString});
+            $("#Board").html(html);
+        }
+
+        function DisplayMaterial() {
+            const materialsTemplate = '<% var materials = JSON.parse(materialsJsonString);%>' +
+                                        '<% for (const [key, value] of Object.entries(constraints)) {%> ' +
+                                            '<fieldset><legend><%= key %></legend>' +
+                                                '<% for (var i=0; i < materials.length; i++) {%>' +
+                                                '<% if (materials[i]["PointGroup"] === key) {%>' +
+                                                    '<div class="row" id="MaterialGrid<%= i+1 %>"><table class="material"><tbody>'+
+                                                        '<% for (var j=0; j < materials[i]["Shape"].length; j++) {%>'+
+                                                            '<tr>' +
+                                                            '<% for (var k=0; k < materials[i]["Shape"][j].length; k++) {%>' +
+                                                                '<td class="piece backgroundColor<%= materials[i]["Shape"][j][k] === 1 ? materials[i]["Color"] : "transparent" %>" draggable="true" ondragstart="drag(event);" materialIndex="<%= i+1 %>" pos="[<%= j %>,<%= k %>]"> </td>' +
+                                                            '<% } %>' +
+                                                            '</tr>'+
+                                                        '<% } %>' +
+                                                        '</tbody></table><p><%= materials[i]["BasePoint"]%></p></div>' + 
+                                                '<% } %>' + 
+                                                '<% } %>' + 
+                                            '</fieldset>' + 
+                                        '<% } %>';
+            var html = ejs.render(materialsTemplate, {materialsJsonString: currentGame.materialsJsonString , constraints : currentGame.getConstraints});
+            $("#MaterialsDock").html(html);
+            hidePlaced();
+        }
+
+        function hidePlaced(){
+            for(var i=0; i < currentGame.placedMaterial.length; i++){
+                $("#MaterialGrid"+currentGame.placedMaterial[i]).hide();
+            }
+        }
+
+        function DisplayColorPercentage(){
+            for (const [key, value] of Object.entries(currentGame.colorOccupancyPercentage)) {
+                var percentageValue = Math.round(value * 100);
+                $("#ColorPercentage"+key).text(percentageValue);
+            }
+        }
+
+        function DisplayPointsInPointGroup() {
+            for (const [key, value] of Object.entries(currentGame.totalPoint)) {
+                var currentGroupConstraints = currentGame.constraintsInGroup(key);
+                for (var i=1; i < currentGroupConstraints.length;i++){
+                    $("#pointGroup"+key+i).val(value);
+                }
+            }
+            if (currentGame.gameEnded){
+                $(".overlay-blackscreen").show();
+                for(var i=0; i < currentGame.highestColorOccupancyColor.length;i++){
+                    blink("#ColorPercentage"+currentGame.highestColorOccupancyColor[i], 10);
+                }
+                setTimeout(function (){  
+                    for (const [key, value] of Object.entries(currentGame.endGamePoints)) {
+                        var currentGroupConstraints = currentGame.constraintsInGroup(key);
+                        for (var i=1; i < currentGroupConstraints.length;i++){
+                            $("#pointGroup"+key+i).val(value);
+                            $(".overlay-blackscreen").hide();
+                        }
+                    }                            
+                }, 5000);
+            }
+        }
+        //#endregion
+        //#region Main Game Controls
+        function drag(e){
+            var currentpos = $(e.target).attr('pos');
+            var currentPieceId = $(e.target).attr('materialIndex');
+            e.dataTransfer.setData("pieceId", currentPieceId);
+            e.dataTransfer.setData("dragpos", currentpos);
+            var dragImage = $(e.target).closest("table")[0].cloneNode(true);
+            document.body.appendChild(dragImage);
+            setTimeout(function() { dragImage.parentNode.removeChild(dragImage) });
+            //set dragImage pos back to the td actually dragged
+            var actualPos = JSON.parse(currentpos);
+            var offsetLeft = getOffsetLeftFromRootParent(e.target) - getOffsetLeftFromRootParent($(e.target).closest("table").get(0));
+            var offsetTop = getOffsetTopFromRootParent(e.target) - getOffsetTopFromRootParent($(e.target).closest("table").get(0));
+            var browserZoomLevel = window.devicePixelRatio ;
+            //console.log(browserZoomLevel);
+            e.dataTransfer.setDragImage(dragImage,offsetLeft , offsetTop);
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            var droppedPieceId = parseInt(ev.dataTransfer.getData("pieceId"));
+            if (droppedPieceId <= 0){
+                return;
+            }
+            var dragPos = JSON.parse(ev.dataTransfer.getData("dragpos"));
+            var currentpos = JSON.parse($(ev.target).attr('pos'));
+            // grid = dropPiece(droppedPieceId, [currentpos[0]-dragPos[0], currentpos[1]-dragPos[1]]);
+            // refreshGrid();
+            var placed = currentGame.placeMaterial(droppedPieceId, new Coordinate(currentpos[0]-dragPos[0], currentpos[1]-dragPos[1]));
+            if (placed){
+                //update grid
+                RefreshBoard();
+            }
+        }
+        //#endregion
+        //#region utility
+        //https://stackoverflow.com/questions/8342667/jquery-get-position-of-element-relative-to-another-element
+        function getOffsetTopFromRootParent(ele) {
+            let elem = $(ele)[0];
+            let offset = 0;
+            while (elem.offsetParent != null) {
+                offset += elem.offsetTop;
+                elem = $(elem.offsetParent)[0];
+                if (elem.offsetParent === null) {
+                    offset += elem.offsetTop;
+                }
+            }
+            return offset;
+        };
+        function getOffsetLeftFromRootParent(ele) {
+            let elem = $(ele)[0];
+            let offset = 0;
+            while (elem.offsetParent != null) {
+                offset += elem.offsetLeft;
+                elem = $(elem.offsetParent)[0];
+                if (elem.offsetParent === null) {
+                    offset += elem.offsetLeft;
+                }
+            }
+            return offset;
+        };
+        
+        //https://stackoverflow.com/questions/8360130/how-to-make-a-text-flash-in-html-javascript
+        function blink(selector, times){
+            if (times > 0){
+                $(selector).fadeOut('slow', function(){
+                    $(this).fadeIn('slow', function(){
+                        blink(this, times-1);
+                    });
+                });
+            }
+        }
+        //https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
+        function randomString(length) {
+            let result = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const charactersLength = characters.length;
+            let counter = 0;
+            while (counter < length) {
+            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            counter += 1;
+            }
+            return result;
+        }
+        //#endregion
+
+    </script>
+</body>
+</html>
