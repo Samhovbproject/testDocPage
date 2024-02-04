@@ -1,5 +1,5 @@
 ---
-title: Synthesis Problem in Atelier Sophie: The Alchemist of the Mysterious books DX
+title: Synthesis Problem in Atelier Sophie the Alchemist of the Mysterious books DX
 layout: default
 nav_order: 3
 has_children: true
