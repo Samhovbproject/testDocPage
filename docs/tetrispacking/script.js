@@ -78,13 +78,19 @@ function arrayAdd(base, arrayToAdd, pos){
                     if (base[pos[0]+i][pos[1]+j] == -1){
                         return originalBase;
                     }
+                    if (pos[1] + j < 0 || pos[0]+i < 0){
+                        return originalBase;
+                    }
+                    if (pos[0]+i >= base.length || pos[1]+j >= base[0].length){
+                        return originalBase;
+                    }
                     base[pos[0]+i][pos[1]+j] += arrayToAdd[i][j];
                 } 
             }
         }
     } catch (e) {
-        debugger;
         console.log(e);
+        return originalBase;
     }
     return base;
 }
