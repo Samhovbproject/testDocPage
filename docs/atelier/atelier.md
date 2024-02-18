@@ -5,33 +5,14 @@ nav_order: 3
 has_children: true
 ---
 
-This is a *bare-minimum* template to create a Jekyll site that uses the [Just the Docs] theme. You can easily set the created site to be published on [GitHub Pages] – the [README] file explains how to do that, along with other details.
+Atelier Sophie is a game that is selling on [Steam](https://store.steampowered.com/app/1502970/Atelier_Sophie_The_Alchemist_of_the_Mysterious_Book_DX/). The game involve player trying to create things by alchemist and has a synthesis problem where different materials are used and the product depends on how the alchemy is performed.
 
-If [Jekyll] is installed on your computer, you can also build and preview the created site *locally*. This lets you test changes before committing them, and avoids waiting for GitHub Pages.[^1] And you will be able to deploy your local build to a different platform than GitHub Pages.
+The problem involves 3 stages:
+1. Player choose which product to make and then the crafting materials
+2. Player choose which cauldron for the process
+3. Player places the crafting materials inside the cauldron and obtain their product based on the result .
 
-More specifically, the created site:
+The demo and the solver will only focus on the 3rd stage as it will involves user to input a lot of values for the first 2 stages. This stage will determine the product quality by how many points the player obtained through placing the materials. Materials and product quality are divided into groups, points obtained from placing materials of one group will only affect the product quality of the respective group. Inside each group, there will be several band of points e.g. 0-30, 30-50, >50, points falling inside the band will determine the final quality. Players sometime may desire less point in order to fall inside their desired band like 30-50 but solver will focus on achieving the highest points as possible (Players can still use solver to get the result they want by manipulating the input to it).
 
-- uses a gem-based approach, i.e. uses a `Gemfile` and loads the `just-the-docs` gem
-- uses the [GitHub Pages / Actions workflow] to build and publish the site on GitHub Pages
+Cauldron is a n*n grid and each cell inside the grid will have different color and may have different grade of shard. Points will be obtained when the material is placed on shards inside the cauldron, there are 3 different grades of shards which will earn more points with higher grade. Shards under the material will be consumed after placement. If the cell containing the shard is of the same color with the material, there will be bonus points. Placing materials will create or upgrade shards on all adjacent cells. Upon placing all the shards, the point earning process is completed and will go through a bonus stage. If a material is placed on top of a currently placed material, the old material will disappear from the grid and the space previously occupied by the material will not gain shards from this placment. All points obtained materials with the same color as the color with the highest occupancy percentage will be multiply by (1+ the occupancy percentage).
 
-Other than that, you're free to customize sites that you create with this template, however you like. You can easily change the versions of `just-the-docs` and Jekyll it uses, as well as adding further plugins.
-
-[Browse our documentation][Just the Docs] to learn more about how to use this theme.
-
-To get started with creating a site, simply:
-
-1. click "[use this template]" to create a GitHub repository
-2. go to Settings > Pages > Build and deployment > Source, and select GitHub Actions
-
-If you want to maintain your docs in the `docs` directory of an existing project repo, see [Hosting your docs from an existing project repo](https://github.com/just-the-docs/just-the-docs-template/blob/main/README.md#hosting-your-docs-from-an-existing-project-repo) in the template README.
-
-----
-
-[^1]: [It can take up to 10 minutes for changes to your site to publish after you push the changes to GitHub](https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll/creating-a-github-pages-site-with-jekyll#creating-your-site).
-
-[Just the Docs]: https://just-the-docs.github.io/just-the-docs/
-[GitHub Pages]: https://docs.github.com/en/pages
-[README]: https://github.com/just-the-docs/just-the-docs-template/blob/main/README.md
-[Jekyll]: https://jekyllrb.com
-[GitHub Pages / Actions workflow]: https://github.blog/changelog/2022-07-27-github-pages-custom-github-actions-workflows-beta/
-[use this template]: https://github.com/just-the-docs/just-the-docs-template/generate
