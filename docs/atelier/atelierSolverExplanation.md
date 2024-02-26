@@ -27,22 +27,8 @@ Rules:
 7. Placing material will cover color (PC) on the baord and will increase the score by Rule 1 and 4, the formula is Summation of points covered + summation of grade with the same color + 1 if multiple same color grid is covered 
 8. Placing material will increase the grade points of adajcent panel by 1 or more e.g. G0-> G1, G1-> G2, G2-> G3, G3-> G3 
 9. adjacent means the following example:
-
-Before placement
-|   |   |   |   |   |
-|---|---|---|---|---|
-|   |   |   |   |   |
-|   |   | 1 |   |   |  
-|   |   |   |   |   |
-|   |   |   |   |   |
-
-After placement
-|   |   |   |   |   |
-|---|---|---|---|---|
-|   | 1 | 1 | 1 |   |
-|   | 1 | 0 | 1 |   |
-|   | 1 | 1 | 1 |   |
-|   |   |   |   |   |
+<img width="514" alt="" src="adjacentImage.png">
+where A means adjacent and P means placement
 
 10. Rule 9 will not apply to panel already covered by other materials and the material itself
 11. Overlapping material (M1) with new material (M2) will clear out the covered area of M1 and the area will not apply rule 9
