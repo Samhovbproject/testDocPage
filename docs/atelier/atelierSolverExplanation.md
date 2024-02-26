@@ -78,9 +78,42 @@ The whole problem can then be defined as a state machine below:
 
 We can then transform this state machine logic into CNF form by using the techniques mentioned in [8](https://baldur.iti.kit.edu/sat/files/2017/l02.pdf). The variables are classified as below:
 
-1. Decision variables: Placing material M at position (i,j) in stage S
-2. Objective variables: Traits gained 
-3. Initial board variables: Cell (i,j) having grade G at stage 0
+1. Decision variables: Placing material M at position (i,j) in stage S (S > 0) M(i,j)S
+2. Objective variables: Traits gained T
+3. Initial board variables: Cell (i,j) having grade G at stage S (S >= 0) G(i,j)S
+4. Overlap variables: Material M is being overlapped at stage S (S > 1) OverlapMS
+5. Overlap at position variables: position (i, j) being overlapped at stage S (S >1) Overlap(i,j)S
+6. Placement variables: cell position (i, j) being placed by material M at stage S (S > 0) PlacedM(i,j)S
+7. Last placement variables: Material M still exist on board at last stage lastM
+8. Material point variables: Points earned by material M in 8 bits + 1 decimal point PointsM
+9. 2 cell has same color with material M variables when placed 2cellM
+10.  Sum of material point variables: Sum of 8 SumM
+11. Sum of points by group G and color C before calculating color occupying percentage SumBeforeGC
+12. variable representing color occupying percentage (0 - 1) COP
+13. whether to apply color occupying percentage on color C COPC
+14. Multiplication intermediate result of color occupying percentage for group G color C MIGC
+15. Sum of points by group G and color C after calculating color occupying percentage SumAfterGC
+16. Current total points of group G in 8 bit CTPG
+17. Final points obtained by group G in integer form FPG
+
+Calculation of the points in the problem is using binary form as seen in the variables above but attaching the final points to the traits obtained is using Onehot encoding as mentioned in [9](https://content.iospress.com/download/journal-on-satisfiability-boolean-modeling-and-computation/sat190085?id=journal-on-satisfiability-boolean-modeling-and-computation%2Fsat190085). Onehot encoding is used as it can represent inequality easily (e.g 2>=n>0 <=> n == 1 or n == 2).
+
+The flow of the variables are as follows:
+1. State progression of board : M(i,j)S and G(i,j)S-1 -> G(i,j)S according to state machine logic
+2. Placement representation: M(i,j)S -> PlacedM(I,J)S (Note case is used to denote the positions may be different)
+3. Overlap checking: Placedm(I,J)S-1 and M(i,j)S -> OverlapmS and Overlap(I,J)S (Note m and M are 2 different materials)
+4. Earn points clause: M(i,j)S and G(i,j)S-1 -> PointsM and 2cellM
+5. Sum up points of material: PointsM + 2cellM? 1 : 0 = SumM
+6. Sum up points in group of same color: SumM + Summ + ... = SumBeforeGC
+7. Last Placement representation: PlacedM(I,J)S -> LastM (when S is last)
+8. Color occupying percentage representation: LastM -> COP (explained later)
+9. Multiplication of color occupying percentage: SumBeforeGC * COP = SumAfterGC
+10. All points in group: SumAfterGC round up-> CTPG
+11. Points encoding change CTPG <-> FPG
+12. Traits representation FPG > base -> T
+
+For color occupying percentage in 8, we can precompute all possible combination of each material present on the last board or not (2^M) and come up with the color occupying percentage of it and encode it. Addition and multiplication is just basic binary computation. All clause above can be transformed to CNF form by using techniques mentioned in [4](https://ozanerdem.github.io/jekyll/update/2019/11/17/representation-in-sat.html). 
+
 
 
 ## Reference tools
