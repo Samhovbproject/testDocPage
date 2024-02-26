@@ -16,3 +16,7 @@ The demo and the solver will only focus on the 3rd stage as it will involves use
 
 Cauldron is a n*n grid and each cell inside the grid will have different color and may have different grade of shard. Points will be obtained when the material is placed on shards inside the cauldron, there are 3 different grades of shards which will earn more points with higher grade. Shards under the material will be consumed after placement. If the cell containing the shard is of the same color with the material, there will be bonus points. Placing materials will create or upgrade shards on all adjacent cells. Upon placing all the shards, the point earning process is completed and will go through a bonus stage. If a material is placed on top of a currently placed material, the old material will disappear from the grid and the space previously occupied by the material will not gain shards from this placment. All points obtained materials with the same color as the color with the highest occupancy percentage will be multiply by (1+ the occupancy percentage).
 
+To report bug on demo, please [create issue](https://github.com/Samhovbproject/SolverProjectGithubPage/issues/new?assignees=Samhovbproject&labels=bug&projects=&template=bug-report-for-atelier-demo.md&title=Bug+report+for+atelier+demo).
+
+To report bug on solver, please [create issue here](https://github.com/Samhovbproject/SolverProjectGithubPage/issues/new?assignees=Samhovbproject&labels=bug&projects=&template=bug-report-for-atelier-solver.md&title=).
+

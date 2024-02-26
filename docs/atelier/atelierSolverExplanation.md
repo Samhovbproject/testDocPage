@@ -36,6 +36,8 @@ where A means adjacent and P means placement
 13. There are board that have 50% increase in obtaining points if placing materials on the same color cell that has grade >= 1 (bonus board)
 14. The board can have holes inside where you can't place materials on it
 
+Note: rule 13 is not considered in the solver at all as randomness cannot be accounted for.
+
 ## Problem further analysis
 We can actually encode the rules of the problem into a finite state transition machine. 
 
