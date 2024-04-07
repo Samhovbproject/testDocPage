@@ -1,5 +1,6 @@
 # Solver Project Github Page
 This is a public repository to display the solvers developed by me. To visit the page, you can go to [here](https://samhovbproject.github.io/SolverProjectGithubPage).
+This page is developed using [just the docs github template](https://github.com/just-the-docs/just-the-docs).
 
 ## Issues and bug reporting
 If any issues you have encountered using the demos, please report it [for atelier](https://github.com/Samhovbproject/SolverProjectGithubPage/issues/new?assignees=Samhovbproject&labels=bug&projects=&template=bug-report-for-atelier-demo.md&title=Bug+report+for+atelier+demo) and [for tetris packing](https://github.com/Samhovbproject/SolverProjectGithubPage/issues/new?assignees=Samhovbproject&labels=bug&projects=&template=bug-report-for-tetris-packing-demo.md&title=).
