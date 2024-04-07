@@ -1,9 +1,3 @@
----
-layout: defaultnotablewrapper
-title: Demonstration
-parent: Tetris Packing
-nav_order: 1
----
 <html>
 <head>
     <style>
@@ -19,11 +13,33 @@ nav_order: 1
         .occupiedBy2{
             background-color: blue;
         }
-        table.piece {
+        .occupiedBy3{
+            background-color: green;
+        }
+        .occupiedBy4{
+            background-color: yellow;
+        }
+        .occupiedBy5{
+            background-color: orange;
+        }
+        .occupiedBy6{
+            background-color: purple;
+        }
+        .occupiedBy7{
+            background-color: brown;
+        }
+        .occupiedBy8{
+            background-color: grey;
+        }
+        .occupiedBy9{
+            background-color: rebeccapurple;
+        }
+        .occupiedBy10{
+            background-color: orangered;
+        }
+        table {
             width:100px;
             height: 100px;
-            table-layout: fixed;
-            min-width: 100px;
         }
         .row {
         display: flex;
@@ -33,18 +49,13 @@ nav_order: 1
         flex: 50%;
         height:100%;
         }
-        #Grid td { border: 1px solid #000000; }
+        td { border: 1px solid #000000; }
         .piece .occupiedBy0 {
             border: 1px solid transparent;
-        }
-        .piece td {
-            border: 1px solid #000000;
         }
         #Grid {
             width:167px;
             height:167px;
-            table-layout: fixed;
-            min-width:167px;
         }
         .overlay {
             z-index: 150;
@@ -72,6 +83,12 @@ nav_order: 1
             <table id="Grid">
                 
             </table>
+            <div id="Solution" style="display:none;">
+                <p>Solution</p>
+                <table id="SolutionGrid">
+                    
+                </table>
+            </div>
         </div>
         <div class="column" id="Dock">
 
@@ -81,323 +98,441 @@ nav_order: 1
         <button id="spin">spin</button>
         <button id="hflip">hflip</button>
         <button id="vflip">vflip</button>
+        <button id="reset">reset</button>
+        <button id="solve">solve</button>
         <button id="customize">customize</button>
     </div>
-    <div class="overlay" style="display:none;"><form>
+    <div class="overlay" style="display:none;" id="CustomizeScreen"><form>
         <label for="rotationOn">Allow Rotation</label><input type="checkbox" id="rotationOn" checked="true"></br>
         <label for="allowflip">Allow Flip</label><input type="checkbox" id="allowflip" checked="true"></br>
+        <label for="allowInfinity">Allow Materials to be placed more than once</label><input type="checkbox" id="allowInfinity" checked="true"></br>
         <label>Grid: </label><input type="text" size="3" id="GridWidth"><label>*</label><input type="text" size="3" id="GridHeight">
-        <table class="customizingGrid"></table>
+        <div class="customizingGrid" id="CustomizerBoard"></div>
         <label>Current Tetris:</label><input type="text" size="3" id="PieceWidth"><label>*</label><input type="text" size="3" id="PieceHeight">
         <button id="AddPiece" type="button">Add new</button></br>
         <div id="piecesCustomizer"></div>
+        <button id="ExportJSON" type="button">Export Json</button>
+        <textarea id="JSONzone" rows="4" cols="50"></textarea>
+        <button id="ImportJSON" type="button">Import Json</button>
+        </br>
         <button id="CloseCustomize" type="button">OK</button>
     </form></div>
-    <script src="script.js"></script>
+    <script src="ejs.min.js"></script>
+    <script src="TetrisPacking.js"></script>
     <script>
-        var grid = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]];
-        var pieces = [[],[[1,0,1],[0,1,0],[0,0,0]],[[0,1,0],[1,1,0],[0,0,0]]];
-        var historyLog = {};
-        var tempMovement = null;
-        function createPieces() {
-            $("#Dock").empty();
-            var htmlToAdd = "";
-            for(var k=0; k < pieces.length; k++){
-                if (pieces[k].length == 0){
-                    continue;
-                }
-                htmlToAdd += '<table class="piece" id="'+k+'"><tbody>';
-                for(var i=0; i < pieces[k].length; i++){
-                    htmlToAdd += "<tr>";
-                    for(var j=0; j < pieces[k][i].length; j++){
-                        var occupied = 0;
-                        if (pieces[k][i][j] == 1){
-                            occupied = k;
-                        }
-                        htmlToAdd += '<td class="occupiedBy'+occupied+'" draggable="true" ondragstart="drag(event);" pos="['+i+','+j+']"></td>';
-                    }
-                    htmlToAdd += "</tr>";
-                }
-                htmlToAdd += '</tbody></table>';
-            }
-            $("#Dock")[0].insertAdjacentHTML("afterbegin",htmlToAdd);
-        }
-        function refreshGrid() {
-            $("#Grid").empty();
-            var htmlToAdd = "<tbody>";
-            for (var i=0; i < grid.length; i++){
-                htmlToAdd += "<tr>";
-                for (var j=0; j < grid[i].length; j++){
-                    htmlToAdd += '<td class="occupiedBy'+grid[i][j]+'" ondrop="drop(event)" ondragover="allowDrop(event)" ondragstart="reDrag(event);" ondragend="reset(event);" pos="['+i+','+j+']">';
-                    htmlToAdd += '</td>';
-                }
-                htmlToAdd += "</tr>";
-            }
-            htmlToAdd += "</tbody>";
-            $("#Grid")[0].insertAdjacentHTML("afterbegin",htmlToAdd);
-            refreshCountGap();
-        }
-        function refreshCountGap() {
-            var gapCount = grid.flat().filter(a=>a == 0).length;
-            $("#gapCount text").text("Gaps :"+gapCount);
-        }
-        
-        function softRefreshGrid() {
-            for(var i=0; i < grid.length; i++){
-                for (var j=0; j < grid[i].length; j++){
-                    var currentCell = $("#Grid td[pos='["+i+","+j+"]']");
-                    var allClass = currentCell.get(0).className.split(/\s+/);
-                    for (k=0; k < allClass.length; k++){
-                        if (allClass[k].split("occupiedBy").length > 1){
-                            currentCell.removeClass(allClass[k]);
-                        }
-                    }
-                    currentCell.addClass("occupiedBy"+grid[i][j]);
-                }
-            }
-        }
-        function removePiece(removeAtpos,currentPieceId){
-            //get all other cell related to the piece
-            var allRelated = arrayCopy(historyLog[JSON.stringify(removeAtpos)]);
-            var tempGrid = arrayCopy(grid);
-            for (var i=0; i < allRelated.length; i++){
-                var currentX = allRelated[i][0];
-                var currentY = allRelated[i][1];
-                tempGrid[currentX][currentY] = 0;
-                historyLog[JSON.stringify(allRelated[i])] = [];
-            }
-            tempMovement = [allRelated,currentPieceId];
-            return tempGrid;
-        }
-        function applyOnAllPiece(mode){
-            for(var i=0; i < pieces.length; i++){
-                if (mode == "spin"){
-                    pieces[i] = arrayRotate(pieces[i]);
-                }
-                if (mode == "vflip"){
-                    pieces[i] = arrayVFlip(pieces[i]);
-                }
-                if (mode == "hflip"){
-                    pieces[i] = arrayHFlip(pieces[i]);
-                }
-            }
-            createPieces();
-        }
-        function dropPiece(pieceId, pos){
-            var testGrid = arrayCopy(grid);
-            var actualArrayToAdd = pieces[parseInt(pieceId)].map(a => a.map(b=>b * parseInt(pieceId)));
-            testGrid = arrayAdd(testGrid, actualArrayToAdd, pos);
-            //check collision
-            var changedCells = [];
-            if (testGrid.length != grid.length){
-                    return grid;
-                }
-            for (var i=0; i < testGrid.length; i++){
-                for (var j=0; j < testGrid.length; j++){
-                    if (testGrid[i][j] > 0 && grid[i][j] != 0 && testGrid[i][j] > grid[i][j]){
-                        return grid;
-                    }
-                    if (testGrid[i][j] != grid[i][j]){
-                        changedCells.push([i,j]);
-                    }
-                }
-                if (testGrid[i].length != grid[i].length){
-                    return grid;
-                }
-            }
-            for (var i=0; i < changedCells.length; i++){
-                historyLog[JSON.stringify(changedCells[i])] = arrayCopy(changedCells);
-            }
-            return testGrid;
+        var solverUrl = "https://solverserver-iihs3ubrla-lz.a.run.app";
+        //var solverUrl = "http://localhost:8080";
+        var currentGame;
+        var resetGame;
+        var customizerGame;
+        var solverGame;
+        var settings = { allowFlip: true, allowSpin: true, allowInfinity: true};
+        $(function() {
+            initializeGame();
+            resetGame = currentGame.clone();
+            bindMainGameToolBoxOnClick();
+            bindCustomizationButtons();
+        });
+
+//#region Main Game
+        function initializeGame(){
+            var board = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]];
+            var materials = [[[true, false, true],[false, true, false],[false, false, false]], [[false, true, false],[true, true, false], [false, false, false]]];
+            currentGame = new Game(JSON.stringify(board), JSON.stringify(materials), settings.allowFlip, settings.allowSpin, settings.allowInfinity);
+            refreshGameDisplay();
         }
 
-        //Section for customization
-        function SetupCustomizeGrid() {
-            $(".customizingGrid td").on("click", function() {
-                if ($(this).is(".solid")){
-                    $(this).removeClass("solid");
-                }else {
-                    $(this).addClass("solid");
-                }
+        function refreshGameDisplay(){
+            refreshBoard();
+            refreshDock();
+            refreshGapCount();
+        }
+
+        function refreshBoard(){
+            const boardTemplate ='<tbody>'+
+                                '<% for (var i=0; i < boardIndex.length; i++) { %>'+
+                                '<tr>'+
+                                    '<% for (var j=0; j < boardIndex[i].length; j++) { %>'+
+                                    '<td class="occupiedBy<%= boardIndex[i][j]%>" ondrop="drop(event)" ondragover="allowDrop(event)" ondragstart="reDrag(event);" ondragend="reset(event);" pos="[<%=i%>,<%=j%>]"></td>'+
+                                    '<% } %>'+
+                                '</tr>'+
+                                '<% } %>'+
+                                '</tbody>'; 
+            var html = ejs.render(boardTemplate, {boardIndex: currentGame.getAllIndexFromBoard()});
+            $("#Grid").html(html);
+        }
+
+        function refreshDock(){
+            const dockTemplate = '<% for (var m=0; m < materials.length; m++) { %>'+
+                                    '<table class="piece" id="<%= materialsIndex[m] %>" ' + 
+                                    '"><tbody>'+
+                                    '<% for (var i=0; i < materials[m].length; i++) { %>'+
+                                    '<tr>'+
+                                        '<% for (var j=0; j < materials[m][i].length; j++) { %>'+
+                                        '<td class="occupiedBy<%= onDockIndex.includes(materialsIndex[m]) ? materials[m][i][j]: materials[m][i][j]> 0 ? -1: 0%>" '+
+                                            '<% if (onDockIndex.includes(materialsIndex[m])){ %>'+
+                                            'draggable="true" ondragstart="drag(event);"'+
+                                            '<% } %>'+
+                                             'pos="[<%= i %>,<%= j %>]"></td>'+
+                                        '<% } %>'+
+                                    '</tr>'+
+                                    '<% } %>'+
+                                    '</tbody></table>'+
+                                '<% } %>'; 
+            var html = ejs.render(dockTemplate, {materials: currentGame.getAllMaterialsShape(), materialsIndex: currentGame.getAllIndex(), onDockIndex: currentGame.materialsOnDock});
+            $("#Dock").html(html);
+        }
+
+        function refreshGapCount(){
+            const gapCountTemplate = '<text>Gaps:<%= count%></text>' ;
+            var html = ejs.render(gapCountTemplate, {count: currentGame.gapCount});
+            $("#gapCount").html(html);
+        }
+//#endregion
+//#region Main Game Toolbox
+        function bindMainGameToolBoxOnClick(){
+            $("#spin").on("click", function(){
+                mainGameSpin();
+            });
+            $("#hflip").on("click", function(){
+                mainGameHFlip();
+            });
+            $("#vflip").on("click", function(){
+                mainGameVflip();
+            });
+            $("#reset").on("click", function(){
+                mainGameReset();
+            });
+            $("#solve").on("click", function(){
+                solveCurrentGame();
             });
         }
-        function SetupCustomizePiece() {
-            $(".customizingPieces td").on("click", function() {
-                if ($(this).is(".solid")){
-                    $(this).removeClass("solid");
-                }else {
-                    $(this).addClass("solid");
+        function mainGameSpin(){
+            currentGame.rotateAllMaterialOnDock();
+            refreshDock();
+        }
+        function mainGameVflip(){
+            currentGame.vFlipAllMaterialOnDock();
+            refreshDock();
+        }
+        function mainGameHFlip(){
+            currentGame.hFlipAllMaterialOnDock();
+            refreshDock();
+        }
+        function mainGameReset(){
+            currentGame = resetGame.clone();
+            refreshGameDisplay();
+        }
+//#endregion
+//#region solver
+        function solveCurrentGame(){
+            solverGame = resetGame.clone();
+            var parameters = {"boardJson":JSON.stringify(resetGame.getAllIndexFromBoard()),"materialsJson":JSON.stringify(resetGame.getAllMaterialJSONObject()),"allowFlip":settings.allowFlip, "allowRotate": settings.allowSpin,"allowInfinity":settings.allowInfinity};
+            $.ajax({
+                    url: solverUrl,
+                    type: "POST",
+                    contentType: "application/json",
+                    data:'{ "type":"tetris", "parameters":'+JSON.stringify(parameters)+'}',
+                    success: function(result){
+                        try {
+                            debugger;
+                            parseSolverResult(result);
+                            displaySolverResult();
+                        }catch(e){
+                            debugger;
+                        }
+                    },
+                });
+        }
+        function parseSolverResult(result){
+            resultObject = JSON.parse(result);
+            reference = resultObject[1];
+            solutionBoard = resultObject[0];
+            for (var i=0; i < solutionBoard.length; i++){
+                for (var j=0; j < solutionBoard[i].length; j++){
+                    // The logic here is that the game will check for collision, so placing the material multiple times should be fine
+                    var materialIndex = solutionBoard[i][j];
+                    if (materialIndex == 0){
+                        continue;
+                    }
+                    if (solutionBoard[i][j] > currentGame.materials.length){
+                        var referenceString = reference[materialIndex];
+                        var referenceArray = referenceString.split(" ");
+                        materialIndex = parseInt(referenceArray[0]);
+                        /* if (referenceArray[1] == "rotate"){
+                            if (referenceArray[2] == "90"){
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.placeMaterialOnBoard(materialIndex, new Coordinate(i,j+solverGame.getMaterialOffsetFromTopToDownLeftToRight(materialIndex)));
+                                // reset rotation
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.rotateAllMaterialOnDock();
+                            }
+                            if (referenceArray[2] == "180"){
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.placeMaterialOnBoard(materialIndex, new Coordinate(i,j+solverGame.getMaterialOffsetFromTopToDownLeftToRight(materialIndex)));
+                                // reset rotation
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.rotateAllMaterialOnDock();
+                            }
+                            if (referenceArray[2] == "270"){
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.rotateAllMaterialOnDock();
+                                solverGame.placeMaterialOnBoard(materialIndex, new Coordinate(i,j+solverGame.getMaterialOffsetFromTopToDownLeftToRight(materialIndex)));
+                                // reset rotation
+                                solverGame.rotateAllMaterialOnDock();
+                            }
+                        }
+                        if (referenceArray[1] == "flip"){
+                            if (referenceArray[2] == "horizontal"){
+                                solverGame.hFlipAllMaterialOnDock();
+                                solverGame.placeMaterialOnBoard(materialIndex, new Coordinate(i,j+solverGame.getMaterialOffsetFromTopToDownLeftToRight(materialIndex)));
+                                // reset flip
+                                solverGame.hFlipAllMaterialOnDock();
+                            }
+                            if (referenceArray[2] == "vertical"){
+                                solverGame.vFlipAllMaterialOnDock();
+                                solverGame.placeMaterialOnBoard(materialIndex, new Coordinate(i,j+solverGame.getMaterialOffsetFromTopToDownLeftToRight(materialIndex)));
+                                // reset flip
+                                solverGame.vFlipAllMaterialOnDock();
+                            } 
+                        }*/
+                    } else {
+                        //solverGame.placeMaterialOnBoard(materialIndex, new Coordinate(i,j+solverGame.getMaterialOffsetFromTopToDownLeftToRight(materialIndex)));
+                    }
+                    solverGame.board.boardIndex[i][j] = materialIndex;
                 }
+            }
+        }
+        function displaySolverResult(){
+            $("#Solution").show();
+            const solverBoardTemplate ='<tbody>'+
+                                '<% for (var i=0; i < boardIndex.length; i++) { %>'+
+                                '<tr>'+
+                                    '<% for (var j=0; j < boardIndex[i].length; j++) { %>'+
+                                    '<td class="occupiedBy<%= boardIndex[i][j]%>"></td>'+
+                                    '<% } %>'+
+                                '</tr>'+
+                                '<% } %>'+
+                                '</tbody>'; 
+            var html = ejs.render(solverBoardTemplate, {boardIndex: solverGame.getAllIndexFromBoard()});
+            $("#SolutionGrid").html(html);
+        }
+//#endregion
+//#region DragDropUtilities
+        function drop(ev){
+            //ondrop board
+            ev.preventDefault();
+            var droppedPieceId = ev.dataTransfer.getData("pieceId");
+            if (droppedPieceId <= 0){
+                return;
+            }
+            var dragPos = JSON.parse(ev.dataTransfer.getData("dragpos"));
+            var currentpos = JSON.parse($(ev.target).attr('pos'));
+            currentGame.placeMaterialOnBoard(droppedPieceId, new Coordinate(currentpos[0]-dragPos[0], currentpos[1]-dragPos[1]));
+            refreshGameDisplay();
+        }
+        function allowDrop(event){
+            //ondragover board
+            event.preventDefault();
+        }
+        function reDrag(e){
+            //ondragstart board
+            var currentpos = $(e.target).attr('pos');
+            var actualPos = JSON.parse(currentpos);
+            var materialIndex = currentGame.pullMaterialFromBoard(new Coordinate(actualPos[0], actualPos[1]));
+            e.dataTransfer.setData("pieceId", materialIndex);
+            e.dataTransfer.setData("dragpos", "[0,0]");
+            var dragImage = $("table#"+materialIndex).get(0).cloneNode(true);
+            document.body.appendChild(dragImage);
+            setTimeout(function() { dragImage.parentNode.removeChild(dragImage) });
+            e.dataTransfer.setDragImage(dragImage, 0, 0);
+            refreshGameDisplay();
+        }
+        function reset(event){
+            //ondragend board
+            refreshGameDisplay();
+        }
+        function drag(e){
+            //ondragstart piece
+            var currentpos = $(e.target).attr('pos');
+            var currentPieceId = $(e.target).closest("table").attr("id");
+            e.dataTransfer.setData("pieceId", currentPieceId);
+            e.dataTransfer.setData("dragpos", currentpos);
+            var dragImage = $(e.target).closest("table")[0].cloneNode(true);
+            document.body.appendChild(dragImage);
+            setTimeout(function() { dragImage.parentNode.removeChild(dragImage) });
+            //set dragImage pos back to the td actually dragged
+            var actualPos = JSON.parse(currentpos);
+            var offsetLeft = getOffsetLeftFromRootParent(e.target) - getOffsetLeftFromRootParent($(e.target).closest("table").get(0));
+            var offsetTop = getOffsetTopFromRootParent(e.target) - getOffsetTopFromRootParent($(e.target).closest("table").get(0));
+            var browserZoomLevel = window.devicePixelRatio ;
+            //console.log(browserZoomLevel);
+            e.dataTransfer.setDragImage(dragImage,offsetLeft , offsetTop);
+            //e.dataTransfer.setDragImage(dragImage,offsetLeft*browserZoomLevel , offsetTop*browserZoomLevel);
+        }
+//#endregion
+//#region utilities
+        //https://stackoverflow.com/questions/8342667/jquery-get-position-of-element-relative-to-another-element
+        function getOffsetTopFromRootParent(ele) {
+            let elem = $(ele)[0];
+            let offset = 0;
+            while (elem.offsetParent != null) {
+                offset += elem.offsetTop;
+                elem = $(elem.offsetParent)[0];
+                if (elem.offsetParent === null) {
+                    offset += elem.offsetTop;
+                }
+            }
+            return offset;
+        };
+        function getOffsetLeftFromRootParent(ele) {
+            let elem = $(ele)[0];
+            let offset = 0;
+            while (elem.offsetParent != null) {
+                offset += elem.offsetLeft;
+                elem = $(elem.offsetParent)[0];
+                if (elem.offsetParent === null) {
+                    offset += elem.offsetLeft;
+                }
+            }
+            return offset;
+        };
+//#endregion
+//#region Customize
+        function bindCustomizationButtons(){
+            $("#customize").on("click", function() {
+                StartUpCustomize();
             });
-        }
-        function parseCustomizePieces(){
-            pieces = [];
-            var allCustomizingGrid = $(".customizingPieces");
-            for(var i=0; i < allCustomizingGrid.length; i++){
-                var piecearray = [];
-                var allrow = $(allCustomizingGrid[i]).find("tr");
-                for(var j=0; j < allrow.length; j++){
-                    var currentrowarray = [];
-                    var allcell = $(allrow[j]).find("td");
-                    for (var k=0; k < allcell.length; k++){
-                        if ($(allcell[k]).is(".solid")){
-                            currentrowarray.push(1);
-                        } else {
-                            currentrowarray.push(0);
-                        }
-                    }
-                    piecearray.push(currentrowarray);
-                }
-                pieces.push(piecearray);
-            }
-            console.log(pieces);
-        }
-        function parseCustomizeGrid(){
-            grid = [];
-            var customizingGrid = $(".customizingGrid").get(0);
-            var allrow = $(customizingGrid).find("tr");
-            for(var j=0; j < allrow.length; j++){
-                var currentrowarray = [];
-                var allcell = $(allrow[j]).find("td");
-                for (var k=0; k < allcell.length; k++){
-                    if ($(allcell[k]).is(".solid")){
-                        currentrowarray.push(-1);
-                    } else {
-                        currentrowarray.push(0);
-                    }
-                }
-                grid.push(currentrowarray);
-            }
-            console.log(grid);
-        }
-        function DisplayCurrentGrid() {
-            $(".customizingGrid").empty();
-            var appendHtml = "<tbody>";
-            for (var i=0; i < grid.length; i++){
-                appendHtml += "<tr>";
-                for (var j=0; j < grid[i].length; j++){
-                    if (grid[i][j] == -1){
-                        appendHtml += "<td class='solid'></td>";
-                    } else {
-                        appendHtml += "<td></td>";
-                    }
-                }
-                appendHtml += "</tr>";
-            }
-            appendHtml += "</tbody>";
-            $(".customizingGrid")[0].insertAdjacentHTML("afterbegin",appendHtml);
-        }
-        function DisplayCurrentPieces() {
-            $("#piecesCustomizer").empty();
-            var appendHtml = "";
-            for (var k=0; k < pieces.length; k++){
-                if (k==0){
-                    appendHtml += "<replacetable class='customizingPieces' style='display:none;'><tbody>".replace("replacetable", "ta"+"ble");
-                } else {
-                    appendHtml += "<replacetable class='customizingPieces'><tbody>".replace("replacetable", "ta"+"ble");
-                }
-                for (var i=0; i < pieces[k].length; i++){
-                    appendHtml += "<tr>";
-                    for (var j=0; j < pieces[k][i].length; j++){
-                        if (pieces[k][i][j] == 1){
-                            appendHtml +="<td class='solid'></td>";
-                        } else {
-                            appendHtml +="<td></td>";
-                        }
-                    }
-                    appendHtml += "</tr>";
-                }
-                appendHtml += "</tbody></replacetable>".replace("replacetable", "ta"+"ble");
-            }
-            $("#piecesCustomizer")[0].insertAdjacentHTML("afterbegin",appendHtml);
-        }
-        function SetUpAddPieceButton(){
-            $("#AddPiece").off("click");
-            $("#AddPiece").on("click", function () {
+            $("#CloseCustomize").on("click", function() {
+                FinishCustomize();
+            });
+            $("#rotationOn").on('click', function(){
+                settings.allowSpin = $(this).is(":checked");
+            });
+            $("#allowflip").on('click', function(){
+                settings.allowFlip = $(this).is(":checked");
+            });
+            $("#allowInfinity").on('click', function(){
+                settings.allowInfinity = $(this).is(":checked");
+            });
+            $("#AddPiece").on('click', function() {
+                var oldmaterials = customizerGame.getAllMaterialJSONObject();
                 var width = $("#PieceWidth").val();
                 var height = $("#PieceHeight").val();
-                if (!width){
-                    width = 3;
-                } else {
-                    width = parseInt(width);
+                if (width && height){
+                    var newMaterial = create2dEmptyArray(parseInt(height), parseInt(width), false);
+                    oldmaterials.push(newMaterial);
+                    customizerGame = new Game(JSON.stringify(customizerGame.getAllIndexFromBoard()), JSON.stringify(oldmaterials), settings.allowFlip, settings.allowSpin, settings.allowInfinity);
                 }
-                if (!height){
-                    height = 3;
-                } else {
-                    height = parseInt(height);
-                }
-                pieces.push(InitializeGrid(width, height));
-                DisplayCurrentPieces();
-                SetupCustomizePiece();
-            });
-        }
-        function InitializeGrid(width, height){
-            tempGrid = [];
-            for (var i=0; i< height; i++){
-                b = new Array(width).fill(0);
-                tempGrid.push(b);
-            }
-            return tempGrid;
-        }
-        function DisplayCustomize() {
-            DisplayCurrentGrid();
-            DisplayCurrentPieces();
-            SetupCustomizeGrid();
-            SetupCustomizePiece();
-            SetUpAddPieceButton();
-            $("#GridWidth").val(grid[0].length);
-            $("#GridHeight").val(grid.length);
-            $("#GridWidth").on("change", function() {
-                var originalGrid = arrayCopy(grid);
-                grid = InitializeGrid(parseInt($(this).val()), originalGrid.length);
-                DisplayCurrentGrid();
-                SetupCustomizeGrid();
-            });
-            $("#GridHeight").on("change", function() {
-                var originalGrid = arrayCopy(grid);
-                grid = InitializeGrid(originalGrid[0].length, parseInt($(this).val()));
-                DisplayCurrentGrid();
-                SetupCustomizeGrid();
-            });
-        }
-        //Section for customization
-        $(document).ready(function() {
-            refreshGrid();
-            createPieces();
-            $("#spin").on("click", function(){
-                applyOnAllPiece("spin");
+                refreshCustomizeMaterials();
             })
-            $("#vflip").on("click", function (){
-                applyOnAllPiece("vflip");
-            });
-            $("#hflip").on("click", function (){
-                applyOnAllPiece("hflip");
-            });
-            DisplayCustomize();
-            $("#CloseCustomize").on("click", function () {
-                $(".overlay").css('display','none');
-                parseCustomizePieces();
-                parseCustomizeGrid();
-                refreshGrid();
-                createPieces();
-                if ($("#rotationOn").is(':checked')){
-                    $("#spin").attr('disabled',false);
-                } else {
-                    $("#spin").attr('disabled',true);
+            $("#GridWidth, #GridHeight").on('change', function() {
+                var width = $("#GridWidth").val();
+                var height = $("#GridHeight").val();
+                if (width && height){
+                    var newBoard = create2dEmptyArray(parseInt(height), parseInt(width), 0);
+                    customizerGame = new Game(JSON.stringify(newBoard), JSON.stringify(customizerGame.getAllMaterialJSONObject()), settings.allowFlip, settings.allowSpin, settings.allowInfinity);
                 }
-                if ($("#allowflip").is(':checked')){
-                    $("#hflip").attr('disabled',false);
-                    $("#vflip").attr('disabled',false);
-                } else {
-                    $("#vflip").attr('disabled',true);
-                    $("#hflip").attr('disabled',true);
+                refreshCustomizeBoard();
+            })
+            $("#ExportJSON").on("click", function() {
+                var JSONObject = {"boardJSON": customizerGame.getAllIndexFromBoard(), "materialsJSON": customizerGame.getAllMaterialJSONObject(), "settings": settings};
+                $("#JSONzone").val(JSON.stringify(JSONObject));
+            })
+            $("#ImportJSON").on("click", function() {
+                try {
+                    var JSONObject = JSON.parse($("#JSONzone").val());
+                    settings = JSONObject.settings;
+                    customizerGame = new Game(JSON.stringify(JSONObject.boardJSON), JSON.stringify(JSONObject.materialsJSON), settings.allowFlip, settings.allowSpin, settings.allowInfinity);
+                    refreshCustomizer();
+                }catch {
+                    // ignore error 
                 }
+            })
+            // Binding click event on document for dynamic created elements
+            $(document).on("click",".customizingGrid td" , function() {
+                var currentpos = JSON.parse($(this).attr('pos'));
+                var isempty = $(this).attr('isempty') === "true";
+                if (isempty){
+                    customizerGame.makeHoleOnBoard(new Coordinate(currentpos[0], currentpos[1]));
+                } else {
+                    customizerGame.resetBoardOnPosition(new Coordinate(currentpos[0], currentpos[1]));
+                }
+                refreshCustomizeBoard();
             });
-            $("#customize").on("click", function () {
-                $(".overlay").css('display','block');
-                DisplayCustomize();
+            $(document).on("click","button.removeMaterial" , function() {
+                var materialIndex = parseInt($(this).attr('materialindex'));
+                customizerGame.removeMaterial(materialIndex);
+                refreshCustomizeMaterials();
             });
-        });
+            $(document).on("click",".customizingPiece td" , function() {
+                var currentpos = JSON.parse($(this).attr('pos'));
+                var materialIndex = parseInt($(this).closest("table").attr('materialindex'));
+                var isempty = $(this).attr('isempty') === "true";
+                if (isempty){
+                    customizerGame.makeMaterialSolidAt(materialIndex, new Coordinate(currentpos[0], currentpos[1]));
+                } else {
+                    customizerGame.makeMaterialEmptyAt(materialIndex,new Coordinate(currentpos[0], currentpos[1]));
+                }
+                refreshCustomizeMaterials();
+            });
+        }
+        function StartUpCustomize(){
+            customizerGame = resetGame.clone();
+            $("#CustomizeScreen").show();
+            refreshCustomizer();
+        }
+
+        function refreshCustomizer(){
+            refreshCustomizeBoard();
+            refreshCustomizeMaterials();
+            $("#GridWidth").val(customizerGame.boardDimension[0]);
+            $("#GridHeight").val(customizerGame.boardDimension[1]);
+            $("#rotationOn").prop('checked', settings.allowSpin);
+            $("#allowflip").prop('checked', settings.allowFlip);
+            $("#allowInfinity").prop('checked', settings.allowInfinity);
+        }
+
+        function refreshCustomizeBoard(){
+            const customizeBoardTemplate ='<table><tbody>'+
+                                '<% for (var i=0; i < boardIndex.length; i++) { %>'+
+                                '<tr>'+
+                                    '<% for (var j=0; j < boardIndex[i].length; j++) { %>'+
+                                    '<td class="occupiedBy<%= boardIndex[i][j]%>" pos="[<%=i%>,<%=j%>]"  isempty="<%= boardIndex[i][j] === 0%>"></td>'+
+                                    '<% } %>'+
+                                '</tr>'+
+                                '<% } %>'+
+                                '</tbody></table>'; 
+            var html = ejs.render(customizeBoardTemplate, {boardIndex: customizerGame.getAllIndexFromBoard()});
+            $("#CustomizerBoard").html(html);
+        }
+
+        function refreshCustomizeMaterials(){
+            const customizerDockTemplate = '<% for (var m=0; m < materials.length; m++) { %>'+
+                                    '<table class="customizingPiece" id="customizing<%= materialsIndex[m] %>" materialindex="<%= materialsIndex[m]%>"><tbody>'+
+                                    '<% for (var i=0; i < materials[m].length; i++) { %>'+
+                                    '<tr>'+
+                                        '<% for (var j=0; j < materials[m][i].length; j++) { %>'+
+                                        '<% var occupiedBy= -1; if (materials[m][i][j] === 0) { occupiedBy = 0;}%>'+
+                                        '<td class="occupiedBy<%= occupiedBy%>" pos="[<%= i %>,<%= j %>]" isempty="<%= materials[m][i][j] === 0%>"></td>'+
+                                        '<% } %>'+
+                                    '</tr>'+
+                                    '<% } %>'+
+                                    '</tbody></table><button class="removeMaterial" type="button" materialindex="<%= materialsIndex[m]%>">x</button>'+
+                                '<% } %>'; 
+            var html = ejs.render(customizerDockTemplate, {materials: customizerGame.getAllMaterialsShape(), materialsIndex: customizerGame.getAllIndex()});
+            $("#piecesCustomizer").html(html);
+        }
+        function FinishCustomize(){
+            $("#CustomizeScreen").hide();
+            currentGame = new Game(JSON.stringify(customizerGame.getAllIndexFromBoard()), JSON.stringify(customizerGame.getAllMaterialJSONObject()), settings.allowFlip, settings.allowSpin, settings.allowInfinity);
+            resetGame = currentGame.clone();
+            refreshGameDisplay();
+        }
+//#endregion
     </script>
 </body>
 </html>
