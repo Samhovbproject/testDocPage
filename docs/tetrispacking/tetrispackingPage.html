@@ -371,6 +371,9 @@ nav_order: 2
             e.dataTransfer.setData("pieceId", currentPieceId);
             e.dataTransfer.setData("dragpos", currentpos);
             var dragImage = $(e.target).closest("table")[0].cloneNode(true);
+            //https://stackoverflow.com/questions/34200023/drag-drop-set-custom-html-as-drag-image
+            dragImage.style.position = "absolute";
+            dragImage.style.top = "-1000px";
             document.body.appendChild(dragImage);
             setTimeout(function() { dragImage.parentNode.removeChild(dragImage) });
             //set dragImage pos back to the td actually dragged
