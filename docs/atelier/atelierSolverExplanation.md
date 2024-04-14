@@ -3,7 +3,7 @@ title: Explanation of problem and solver
 layout: default
 parent: Synthesis Problem in Atelier Sophie the Alchemist of the Mysterious books DX
 nav_order: 2
-has_children: true
+has_children: false
 ---
 
 ## Problem definition

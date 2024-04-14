@@ -11,6 +11,4 @@ For the demo and the solver, the grid allow holes where pieces cannot be placed 
 
 To report bug on demo, please [create issue](https://github.com/Samhovbproject/SolverProjectGithubPage/issues/new?assignees=Samhovbproject&labels=bug&projects=&template=bug-report-for-tetris-packing-demo.md&title=).
 
-Currently the solver hasn't been deployed.
-
 To report bug on solver, please [create issue here](https://github.com/Samhovbproject/SolverProjectGithubPage/issues/new?assignees=Samhovbproject&labels=bug&projects=&template=bug-report-for-tetris-packing-solver.md&title=).

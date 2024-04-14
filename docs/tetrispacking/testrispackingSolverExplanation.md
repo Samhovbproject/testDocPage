@@ -3,7 +3,7 @@ title: Explanation of solver
 parent: Tetris Packing
 layout: default
 nav_order: 2
-has_children: true
+has_children: false
 ---
 
 The solver is just a small modification on the original comment by sascha that can be seen [here](https://stackoverflow.com/questions/47918792/2d-bin-packing-on-a-grid).
