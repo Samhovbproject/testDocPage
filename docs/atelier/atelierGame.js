@@ -377,7 +377,7 @@ class Board{
 
     setGrade(x,y,grade){
         var cell = this.getCell(new Coordinate(x,y));
-        if (grade > 0 && grade <= 3){
+        if (grade >= 0 && grade <= 3){
             cell.grade = grade;
         }
     }
@@ -430,7 +430,7 @@ class Game {
     }
 
     get jsonString(){
-        return JSON.stringify({"boardJson":this.initialBoardJsonString, "materialsJson": this.materialsJsonString, "constraints": this.constraints, "applyWhichPointRule":this.pointRuleString});
+        return JSON.stringify({"boardJson":this.boardJsonString, "materialsJson": this.materialsJsonString, "constraints": this.constraints, "applyWhichPointRule":this.pointRuleString});
     }
     
     get boardJsonString() {
@@ -632,5 +632,17 @@ class Game {
             isHoleGrid.push(Array(targetSize).fill(false));
         }
         this.board = new Board(gradeGrid, colorGrid, isHoleGrid);
+    }
+    
+    removeAllMaterialsInPointGroup(pointGroup){
+        var removeIndex = [];
+        for (var i=0; i < this.materials.length; i++){
+            if (this.materials[i].pointGroup == pointGroup){
+                removeIndex.push(i);
+            }
+        }
+        for (var j=0; j < removeIndex.length; j++){
+            this.materials.splice(removeIndex[j]);
+        }
     }
 }
