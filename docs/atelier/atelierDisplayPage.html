@@ -348,10 +348,14 @@ nav_order: 1
             RefreshMaterialCustomizer();
             RefreshBoardCustomizer();
             $("#CustomizeScreen").show();
+            $("#Main").hide();
+            $("#RuleExplanation").hide();
         }
 
         function CloseCustomize(){
             $("#CustomizeScreen").hide();
+            $("#Main").show();
+            $("#RuleExplanation").show();
             currentGame = new Game(customizerGame.boardJsonString, customizerGame.materialsJsonString, customizerGame.constraints, customizerGame.applyWhichPointRule);
             RefreshBoard();
             DisplayConstraints();
